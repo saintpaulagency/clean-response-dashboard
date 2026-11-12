@@ -1,0 +1,20 @@
+import fs from 'fs';
+import { feature } from 'topojson-client';
+import { geoMercator, geoPath } from 'd3-geo';
+const topo = JSON.parse(fs.readFileSync(new URL('./node_modules/us-atlas/counties-10m.json', import.meta.url)));
+const all = feature(topo, topo.objects.counties).features;
+const core = {'27003':'Anoka','27019':'Carver','27037':'Dakota','27053':'Hennepin','27123':'Ramsey','27139':'Scott','27163':'Washington'};
+const ctx = ['27171','27141','27059','27025','27049','27131','27079','27143','27085','55109','55093','55095','27013','27161'];
+const coreF = all.filter(f => core[f.id]);
+const W = 800, H = 700;
+const proj = geoMercator().fitExtent([[24, 24], [W - 24, H - 24]], { type: 'FeatureCollection', features: coreF });
+const path = geoPath(proj);
+const r = v => Math.round(v * 10) / 10;
+const round = d => d.replace(/-?\d+\.\d+/g, m => String(r(+m)));
+const counties = coreF.map(f => { const c = path.centroid(f); return { fips: f.id, name: core[f.id], d: round(path(f)), cx: r(c[0]), cy: r(c[1]) }; });
+const context = all.filter(f => ctx.includes(f.id)).map(f => ({ fips: f.id, d: round(path(f)) }));
+const pts = JSON.parse(fs.readFileSync(process.argv[2]));
+const out = { viewBox: [0, 0, W, H], counties, context, points: {} };
+for (const [k, [lat, lon]] of Object.entries(pts)) { const p = proj([lon, lat]); out.points[k] = [r(p[0]), r(p[1])]; }
+fs.writeFileSync(process.argv[3], JSON.stringify(out));
+console.log('counties', counties.length, 'context', context.length, 'points', Object.keys(out.points).length);

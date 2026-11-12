@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clean Response · Media Performance (Sample) · Saint Paul Agency</title>
+<meta name="description" content="Sample CTV and billboard performance report for Clean Response, prepared by Saint Paul Agency. All figures are sample data.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="assets/img/spa-logo.png">
+<link rel="preload" href="assets/fonts/poppins-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/poppins-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/app.css">
+<script>
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('spa-theme'); } catch (e) {}
+    if (t !== 'light' && t !== 'dark') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <span class="logo"><img src="assets/img/spa-logo.png" alt="Saint Paul Agency"></span>
+      <div class="brand-text">
+        <div class="eyebrow">Saint Paul Agency · Media performance</div>
+        <h1>Clean Response <span class="h1-sub">CTV + Billboards</span></h1>
+      </div>
+      <span class="pill sample" title="Every number on this page is made up to show the format.">Sample data</span>
+    </div>
+    <nav class="views" id="views" role="tablist" aria-label="How to view this report">
+      <button role="tab" data-v="dashboard">Dashboard</button>
+      <button role="tab" data-v="slides">Presentation</button>
+      <button role="tab" data-v="report">Report / PDF</button>
+      <button role="tab" data-v="data">Data</button>
+    </nav>
+    <div class="tools">
+      <button class="icon-btn" id="linkBtn" title="Copy a link to exactly this view"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Copy link</span></button>
+      <button class="icon-btn" id="themeBtn" title="Switch light / dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Theme</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="filterbar" role="region" aria-label="Period">
+  <div class="filter-in">
+    <div class="presets" id="presets" aria-label="Pick a period"></div>
+    <div class="custom" id="custom">
+      <label>From <input type="date" id="dFrom"></label>
+      <label>To <input type="date" id="dTo"></label>
+    </div>
+    <div class="period-row">
+      <span class="period-text" id="periodText"></span>
+      <span class="grain" id="grainWrap"><span class="grain-label">Trend detail</span><span class="seg" id="grain"><button data-g="day">Day</button><button data-g="week">Week</button></span></span>
+    </div>
+  </div>
+</div>
+
+<main id="main">
+  <section class="view" id="view-dashboard" aria-label="Dashboard">
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Dashboard sections">
+      <button role="tab" data-t="overview">Overview</button>
+      <button role="tab" data-t="ctv">CTV · Floyd</button>
+      <button role="tab" data-t="ooh">Billboards</button>
+      <button role="tab" data-t="results">Results</button>
+    </nav>
+    <div id="tabBody"></div>
+  </section>
+
+  <section class="view" id="view-slides" aria-label="Presentation" hidden>
+    <div class="deck-bar">
+      <button class="btn ghost" id="prevSlide" aria-label="Previous slide">‹ Back</button>
+      <span class="slide-count" id="slideCount"></span>
+      <button class="btn ghost" id="nextSlide" aria-label="Next slide">Next ›</button>
+      <span class="deck-hint">Arrow keys move · F for full screen</span>
+      <button class="btn" id="fsBtn">Present full screen</button>
+    </div>
+    <div class="deck-viewport" id="deckViewport"><div class="stage" id="stage"></div></div>
+    <div class="slide-list" id="slideList" aria-label="All slides"></div>
+  </section>
+
+  <section class="view" id="view-report" aria-label="Printable report" hidden>
+    <div class="report-bar">
+      <div><b>Printable report</b> · Letter size, follows the period above. Use <b>Save as PDF</b> in the print window.</div>
+      <button class="btn" id="printBtn">Download PDF / Print</button>
+    </div>
+    <div class="sheets" id="sheets"></div>
+  </section>
+
+  <section class="view" id="view-data" aria-label="Data" hidden>
+    <div class="grid" id="dataBody"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <span class="f-brand"><img src="assets/img/spa-logo.png" alt=""> Prepared by <b>Saint Paul Agency</b></span>
+    <span>Sample data: every number here is made up to show the reporting format.</span>
+    <a href="https://saintpaulagency.com" rel="noopener">saintpaulagency.com</a>
+  </div>
+</footer>
+<div id="tip" class="tooltip" role="status" hidden></div>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

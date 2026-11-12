@@ -1,0 +1,9 @@
+board_id,location,city,county,facing,type,size,flight_start,flight_end,weekly_impressions_18plus,cost_per_4_weeks_usd,contracted_plays_per_day
+CR-D01,I-94 at Snelling Ave,St. Paul,Ramsey,Eastbound,Digital bulletin,14' x 48',2026-07-01,2026-10-31,52000,2600,1350
+CR-D02,I-35E at Diffley Rd,Eagan,Dakota,Northbound,Digital bulletin,10' x 30',2026-07-01,2026-10-31,38000,2100,1350
+CR-D03,I-494 at France Ave,Bloomington,Hennepin,Westbound,Digital bulletin,14' x 48',2026-07-01,2026-10-31,61000,2900,1350
+CR-D04,I-694 at Hwy 10,Arden Hills,Ramsey,Eastbound,Digital bulletin,14' x 48',2026-07-01,2026-10-31,44000,2300,1350
+CR-D05,I-94 at Hwy 101,Rogers,Hennepin,Westbound,Digital bulletin,10' x 30',2026-07-01,2026-10-31,33000,1900,1350
+CR-S01,I-35W at Hwy 13,Burnsville,Dakota,Northbound,Static bulletin,14' x 48',2026-07-01,2026-10-31,128000,3400,0
+CR-S02,Hwy 169 at I-494,Eden Prairie,Hennepin,Southbound,Static bulletin,14' x 48',2026-07-01,2026-10-31,112000,3100,0
+CR-S03,I-94 at Radio Dr,Woodbury,Washington,Eastbound,Static bulletin,14' x 48',2026-09-01,2026-10-31,96000,2900,0
