@@ -113,6 +113,9 @@
     if (o.ref) {
       const ry = y(o.ref.value);
       el('line', { x1: m.l, x2: W - m.r, y1: ry, y2: ry, class: 'ref-line' }, svg);
+    }
+    if (o.ref && o.ref.label) {
+      const ry = y(o.ref.value);
       // put the label where the data lines are farthest from it
       const lw = C.textWidth(o.ref.label, 13) + 8, cands = [];
       [[m.l + 6, 'start'], [W - m.r - 4, 'end'], [m.l + iw / 2, 'middle']].forEach(([tx, an]) => [ry + 17, ry - 7].forEach(ty => {
@@ -282,6 +285,10 @@
     const a = hex2rgb(ramp[i]), b = hex2rgb(ramp[i + 1]);
     return '#' + a.map((v, k) => Math.round(v + (b[k] - v) * f).toString(16).padStart(2, '0')).join('');
   };
+  C.contrast = function (a, b) {
+    const L = h => { const v = hex2rgb(h).map(x => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+    const x = L(a), y = L(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  };
   C.inkOn = function (hex) { const [r, g, b] = hex2rgb(hex); return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? '#0E1830' : '#FFFFFF'; };
 
   // ---------- map: county shading + billboard markers
@@ -290,16 +297,18 @@
     host.innerHTML = '';
     const svg = el('svg', { viewBox: g.viewBox.join(' '), width: '100%', role: 'img', 'aria-label': o.label || 'Map', class: 'viz map' }, host);
     if (o.maxHeight) svg.style.maxHeight = o.maxHeight + 'px';
-    // size labels and markers in screen pixels, whatever size the map is drawn at
+    // work in screen pixels: k = svg units per screen pixel at the size the map is drawn
     const bb = svg.getBoundingClientRect();
     const rw = bb.width ? Math.min(bb.width, bb.height ? bb.height * W / H : 1e9) : (Math.min(host.clientWidth || 640, (o.maxHeight || 1e9) * W / H) || 640);
-    const k = W / rw, small = rw < 400;
-    svg.classList.toggle('small', small);
+    const k = W / rw;
+    const rScreen = Math.min(14, 18 / k);          // neighbouring boards never touch
+    const withText = rScreen >= 10.5;
+    const r = rScreen * k;
     const ctx = el('g', { class: 'map-ctx' }, svg);
     g.context.forEach(c => el('path', { d: c.d }, ctx));
     const vals = g.counties.map(c => o.countyValue(c));
     const lo = Math.min(...vals), hi = Math.max(...vals);
-    const fills = vals.map(v => C.interp(o.ramp, 0.12 + (hi > lo ? (v - lo) / (hi - lo) : 0.5) * 0.88));
+    const fills = vals.map(v => C.interp(o.ramp, 0.08 + (hi > lo ? (v - lo) / (hi - lo) : 0.5) * 0.92));
     const gC = el('g', { class: 'map-counties' }, svg);
     const paths = g.counties.map((c, j) => {
       const p = el('path', { d: c.d, style: `fill:${fills[j]}`, class: 'county', tabindex: 0 }, gC);
@@ -307,49 +316,63 @@
       p.addEventListener('pointermove', ev => on(ev.clientX, ev.clientY));
       p.addEventListener('pointerdown', ev => on(ev.clientX, ev.clientY));
       p.addEventListener('pointerleave', () => C.tip.hide());
-      p.addEventListener('focus', () => { const r = p.getBoundingClientRect(); on(r.left + r.width / 2, r.top + r.height / 2); });
+      p.addEventListener('focus', () => { const q = p.getBoundingClientRect(); on(q.left + q.width / 2, q.top + q.height / 2); });
       p.addEventListener('blur', () => C.tip.hide());
       return p;
     });
+    // keep-out boxes: every board marker plus a margin
+    const pad = 4 * k, taken = (o.boards || []).map(b => [b.x - r - pad, b.y - r - pad, b.x + r + pad, b.y + r + pad]);
+    const hit = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
     const gL = el('g', { class: 'map-labels' }, svg);
+    const cs = getComputedStyle(svg), ink = (cs.getPropertyValue('--ink') || '#0E1830').trim();
+    function place(str, cx, cy, cls, box, rot, fsPx, under) {
+      const fs = fsPx * k;
+      const t = text(gL, cx, cy, str, { class: 'map-label ' + cls, 'font-size': fs, 'stroke-width': 4 * k, 'text-anchor': 'middle' });
+      if (under) { // pick the clearer of light or dark text for this county's colour
+        const cw = C.contrast('#FFFFFF', under), ci = C.contrast(ink, under), best = cw > ci ? '#FFFFFF' : ink;
+        t.style.fill = best;
+        if (Math.max(cw, ci) >= 7) t.style.stroke = under;
+        else t.style.stroke = best === '#FFFFFF' ? '#0E1830' : (C.contrast(ink, '#FFFFFF') > 7 ? '#FFFFFF' : '#0E1830');
+      }
+      let len = 0; try { len = t.getComputedTextLength(); } catch (e) { /* not rendered */ }
+      if (!len) len = str.length * fs * 0.62;
+      const cands = [[0, 0], [0, -1.4], [0, 1.4], [-0.55, 0], [0.55, 0], [0, -2.8], [0, 2.8], [-0.55, -1.4], [0.55, -1.4], [-0.55, 1.4], [0.55, 1.4]];
+      for (const [dx, dy] of cands) {
+        const x = rot ? cx + dy * fs : cx + dx * len, y = rot ? cy + dx * len : cy + dy * fs;
+        const bx = rot ? [x - fs * 0.8, y - len / 2 - 2 * k, x + fs * 0.3, y + len / 2 + 2 * k] : [x - len / 2 - 3 * k, y - fs * 0.8, x + len / 2 + 3 * k, y + fs * 0.3];
+        if (box && (bx[0] < box.x || bx[2] > box.x + box.width || bx[1] < box.y || bx[3] > box.y + box.height)) continue;
+        if (taken.some(q => hit(bx, q))) continue;
+        t.setAttribute('x', x); t.setAttribute('y', y);
+        if (rot) t.setAttribute('transform', `rotate(-90 ${x} ${y})`);
+        taken.push(bx);
+        return;
+      }
+      t.remove();
+    }
     g.counties.forEach((c, j) => {
-      const lp = (o.countyLab || {})[c.name] || {};
-      const lx = c.cx + (lp.dx || 0), ly = c.cy + (lp.dy || 0);
-      const lab = text(gL, lx, ly, c.name.toUpperCase(), { class: 'county-label', 'text-anchor': 'middle', 'font-size': (small ? 9 : 11) * k, transform: lp.rot ? `rotate(-90 ${lx} ${ly})` : null });
-      lab.style.fill = C.inkOn(fills[j]);
-      try { // drop a label that is wider than its county
-        const bb = paths[j].getBBox(), len = lab.getComputedTextLength();
-        if (len && len > (lp.rot ? bb.height : bb.width) * 0.92) lab.remove();
-      } catch (e) { /* not rendered yet */ }
+      let box = null; try { box = paths[j].getBBox(); } catch (e) { /* ignore */ }
+      const rot = !!((o.countyLab || {})[c.name] || {}).rot;
+      place(c.name.toUpperCase(), c.cx, c.cy + 4 * k, 'county', box, rot, rw < 420 ? 10.5 : 12.5, fills[j]);
     });
-    if (!small) (o.cities || []).forEach(ct => {
-      const pos = (o.cityLab || {})[ct.name] || 'r';
-      el('circle', { cx: ct.x, cy: ct.y, r: 2.6 * k, class: 'city-dot' }, gL);
-      const tx = pos === 'l' ? ct.x - 6 * k : ct.x + 6 * k, ty = pos === 'ur' ? ct.y - 7 * k : ct.y + 4 * k;
-      text(gL, tx, ty, ct.name, { class: 'city-label', 'font-size': 12.5 * k, 'stroke-width': 3.5 * k, 'paint-order': 'stroke', 'text-anchor': pos === 'l' ? 'end' : 'start' });
-    });
+    (o.cities || []).forEach(ct => place(ct.name, ct.x, ct.y + 4 * k, 'city', null, false, rw < 420 ? 11 : 13.5));
     const gB = el('g', { class: 'map-boards' }, svg);
-    const r = (small ? 6 : 8.5) * k;
     (o.boards || []).forEach(b => {
       const live = o.boardLive ? o.boardLive(b) : true;
-      const grp = el('g', { class: 'board' + (live ? '' : ' off') + (o.selected === b.id ? ' sel' : ''), tabindex: 0, 'data-id': b.id, transform: `translate(${b.x},${b.y})`, 'aria-label': `${b.id} ${b.name}` }, gB);
-      el('circle', { r: Math.max(r, 12 * k), class: 'hit' }, grp);
-      if (b.type.startsWith('Digital')) el('circle', { r, class: 'mk', 'stroke-width': 2.2 * k }, grp);
-      else el('rect', { x: -r, y: -r, width: r * 2, height: r * 2, rx: 2.5 * k, class: 'mk', 'stroke-width': 2.2 * k }, grp);
-      if (!small) {
-        const dir = (o.boardLab || {})[b.id] || (b.x > W - 70 ? 'l' : 'r');
-        const lx = dir === 'l' ? -(r + 5 * k) : dir === 'r' ? r + 5 * k : 0, ly = dir === 'b' ? r + 15 * k : dir === 't' ? -(r + 6 * k) : 4.5 * k;
-        text(grp, lx, ly, b.id.replace('CR-', ''), { class: 'board-label', 'font-size': 13 * k, 'stroke-width': 3.5 * k, 'text-anchor': dir === 'l' ? 'end' : dir === 'r' ? 'start' : 'middle', 'paint-order': 'stroke' });
-      }
+      const grp = el('g', { class: 'board' + (withText ? '' : ' small') + (live ? '' : ' off') + (o.selected === b.id ? ' sel' : ''), tabindex: 0, 'data-id': b.id, transform: `translate(${b.x},${b.y})`, 'aria-label': `${o.boardShort(b)}: ${b.name}` }, gB);
+      el('circle', { r: Math.max(r, 14 * k), class: 'hit' }, grp);
+      const sw = (withText ? 3 : 2.5) * k;
+      if (b.type.startsWith('Digital')) el('circle', { r, class: 'mk', 'stroke-width': sw }, grp);
+      else el('rect', { x: -r * 0.92, y: -r * 0.92, width: r * 1.84, height: r * 1.84, rx: 3.5 * k, class: 'mk', 'stroke-width': sw }, grp);
+      if (withText) text(grp, 0, 4.2 * k, o.boardShort(b), { class: 'mk-text', 'font-size': 12 * k, 'text-anchor': 'middle' });
       const on = (cx, cy) => C.tip.show(o.boardTip(b), cx, cy);
       grp.addEventListener('pointermove', ev => on(ev.clientX, ev.clientY));
+      grp.addEventListener('pointerdown', ev => on(ev.clientX, ev.clientY));
       grp.addEventListener('pointerleave', () => C.tip.hide());
-      grp.addEventListener('focus', () => { const rr = grp.getBoundingClientRect(); on(rr.right, rr.top); });
+      grp.addEventListener('focus', () => { const q = grp.getBoundingClientRect(); on(q.right, q.top); });
       grp.addEventListener('blur', () => C.tip.hide());
-      grp.addEventListener('click', ev => { if (o.onBoard) o.onBoard(b); on(ev.clientX, ev.clientY); });
-      grp.addEventListener('keydown', ev => { if ((ev.key === 'Enter' || ev.key === ' ') && o.onBoard) { ev.preventDefault(); o.onBoard(b); } });
+      if (o.onBoard) grp.addEventListener('click', () => o.onBoard(b));
     });
-    return { lo, hi };
+    return { lo, hi, svg };
   };
 
   // ---------- sparkline

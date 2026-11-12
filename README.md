@@ -11,18 +11,22 @@ A Saint Paul Agency reporting page for **Clean Response**, showing streaming TV 
 | View | What it's for |
 |---|---|
 | **Dashboard** | Interactive: Overview, CTV · Floyd, Billboards, Results. Hover or tap any chart, sort any table, click a board on the map. |
-| **Presentation** | A 14-slide deck built from the same numbers. Arrow keys to move, **F** for full screen. |
-| **Report / PDF** | An 11-page, letter-size report. **Download PDF / Print** saves it as a PDF. Printing from any view prints this report. |
+| **Presentation** | A 13-slide deck built from the same numbers. Arrow keys to move, **F** for full screen. |
+| **Report / PDF** | A 9-page, letter-size report. **Download PDF / Print** saves it as a PDF. Printing from any view prints this report. |
 | **Data** | Every dataset as CSV (the full file or just the selected period), previews, a copy-ready email summary and definitions. |
 
 All four follow the period picker (full flight, a month, last 30 or 7 days, or any custom dates), and every number shows its period. Light and dark themes, works on phones. **Copy link** shares exactly the view on screen, including the period.
 
 ## What's in it
 
-- **CTV · Floyd:** investment, impressions, completion rate and quartiles, households reached and frequency, CPM and cost per completed view, site visits from viewers, leads. Broken down by app, device, TV spot, county and hour of day, plus a holdout lift study.
-- **Billboards:** 8 boards (5 digital, 3 static) on a metro map, with impressions, digital plays delivered against contract, cost and CPM board by board, creative rotation and an outage/make-good log.
-- **Results:** website sessions, branded searches and inbound calls against the June pre-campaign baseline, calls to the billboard-only number, lift by county, and weather-trigger days against normal days.
-- **What we'd do next:** recommendations written from the data.
+Each dashboard tab leads with four key numbers, then a few focused cards:
+
+- **Overview:** the headline, the two channels side by side, a metro map of CTV delivery and board locations, highlights, next steps, and website sessions against June.
+- **CTV · Floyd:** impressions, completion rate, households reached, site visits; trend, top apps, devices, time of day, and a holdout lift study.
+- **Billboards:** 8 boards (5 digital, 3 static) on a numbered map with a matching board list, the impressions trend, and proof of performance (plays delivered against contract, outages and make-goods).
+- **Results:** website sessions, brand searches and inbound calls against the June pre-campaign baseline, calls to the billboard-only number, storm-alert days against normal days, and lift by county.
+
+All text is full-strength dark (or light, in dark mode) for easy reading. Nothing overlaps: map labels move or hide rather than cover a board marker.
 
 ## Files
 
