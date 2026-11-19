@@ -96,7 +96,12 @@
     const len = i1 - i0 + 1;
     const mk = (a, b) => { const o = { i0: a, i1: b, len: b - a + 1, label: period(a, b), ctv: ctvT(a, b), ooh: oohT(a, b), halo: haloT(a, b) }; o.spend = o.ctv.spend + o.ooh.spend; o.imps = o.ctv.imps + o.ooh.imps; o.cpm = o.spend / o.imps * 1000; return o; };
     const r = mk(i0, i1);
-    const p0 = i0 - len, p1 = i0 - 1;
+    let p0 = i0 - len, p1 = i0 - 1;
+    // Whole calendar months compare with the same number of months before (July against June's length would skew it).
+    if (D[i0].slice(8) === '01' && (!D[i1 + 1] || D[i1 + 1].slice(8) === '01')) {
+      const n = (+D[i1].slice(0, 4) - +D[i0].slice(0, 4)) * 12 + (+D[i1].slice(5, 7) - +D[i0].slice(5, 7)) + 1;
+      p0 = i0; for (let k = 0; k < n && p0 > 0; k++) { p0--; while (p0 > 0 && D[p0].slice(8) !== '01') p0--; }
+    }
     r.prev = p0 >= FS ? mk(p0, p1) : null;
     let trig = 0; for (let i = i0; i <= i1; i++) trig += S.trigger[i]; r.trigDays = trig;
     cache[key] = r;
