@@ -37,7 +37,7 @@ assets/js/charts.js    small chart kit (lines, bars, heatmap, map, tables), no d
 assets/js/app.js       rollups, the four views, the slides and the report
 assets/js/data.js      the dataset the page reads (window.SAMPLE)
 data/*.csv             the same data as CSV files
-tools/                 rebuilds data.js and the CSVs
+tools/                 rebuilds data.js and the CSVs; check_page.js tests every view at 5 screen sizes
 ```
 
 ## Swapping in real data
