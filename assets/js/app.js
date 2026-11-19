@@ -181,10 +181,10 @@
     const a = D[r.i0], b = D[r.i1], next = D[r.i1 + 1];
     if (a.slice(8) !== '01' || (next && next.slice(8) !== '01')) return '';
     const n = (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7)) + 1;
-    const k = v => '$' + (v >= 1000 ? String(Math.round(v / 100) / 10) + 'K' : Math.round(v));
-    return n >= 2 ? `<br>${nw('Per month:')} ${nw('CTV ' + k(r.ctv.spend / n))} · ${nw('Billboards ' + k(r.ooh.spend / n))}` : '';
+    return n >= 2 ? `<br>${nw('Per month:')} ${nw('CTV ' + usdK(r.ctv.spend / n))} · ${nw('Billboards ' + usdK(r.ooh.spend / n))}` : '';
   }
   const nw = t => `<span style="white-space:nowrap">${esc(t)}</span>`;
+  const usdK = v => v >= 1e6 ? F.usdC(v) : '$' + (v >= 1000 ? String(Math.round(v / 100) / 10) + 'K' : Math.round(v));
   const vsPrev = (r, cur, prev, tone) => r.prev ? delta(cur, prev, tone, 'previous period') : '';
 
   // ------------------------------------------------------------------ narrative
@@ -237,7 +237,7 @@
   B.answer = (h, r) => { h.innerHTML = `<p class="answer">${answerText(r)}</p>`; };
 
   B.kpisOverview = (h, r, o) => kpiRow(h, r, [
-    { label: 'Total investment', value: F.usd(r.spend), delta: vsPrev(r, r.spend, r.prev && r.prev.spend, 'neutral'), note: `${nw('CTV ' + F.usdC(r.ctv.spend))} · ${nw('Billboards ' + F.usdC(r.ooh.spend))}` + perMonth(r) },
+    { label: 'Total investment', value: F.usd(r.spend), delta: vsPrev(r, r.spend, r.prev && r.prev.spend, 'neutral'), note: `${nw('CTV ' + usdK(r.ctv.spend))} · ${nw('Billboards ' + usdK(r.ooh.spend))}` + perMonth(r) },
     { label: 'Total impressions', value: F.compact(r.imps), delta: vsPrev(r, r.imps, r.prev && r.prev.imps, 'up-good'), note: `Blended CPM ${F.usd2(r.cpm)}` },
     { label: 'Households reached by TV', value: F.compact(r.ctv.reach), delta: vsPrev(r, r.ctv.reach, r.prev && r.prev.ctv.reach, 'up-good'), note: `${F.dec(r.ctv.freq, 1)} views per household` },
     { label: 'Website sessions per day', value: F.int(r.halo.sessionsDay), delta: delta(r.halo.sessionsDay, r.halo.sessionsBase, 'up-good', 'June'), note: `June baseline: ${F.int(r.halo.sessionsBase)} per day` },
@@ -438,7 +438,6 @@
     linesCard(h, r, o, {
       title: 'Billboard impressions', yFmt: (v, t) => t ? F.int(v) + ' per day' : F.compact(v),
       series: [{ name: 'Impressions', color: c.ooh, fn: b => { let s = 0; for (let i = b.i0; i <= b.i1; i++) s += sumRow(S.board_daily.imps, i); return s / (b.i1 - b.i0 + 1); } }],
-      note: IX['2026-09-01'] > r.i0 && IX['2026-09-01'] <= r.i1 ? 'The step up on Sep 1 is the Woodbury board going live.' : '',
     });
   };
   B.oohProof = (h, r, o) => {
@@ -623,7 +622,7 @@
       rows: (a, b) => { const bl = S.ctv_dims[k], out = []; rng(a, b).forEach(i => bl.keys.forEach((key, j) => { if (bl.imps[i][j]) out.push([D[i], key, (bl.spend[i][j] / 100).toFixed(2), bl.imps[i][j], bl.completes[i][j], bl.visits[i][j]]); })); return out; },
     })),
     { file: 'ctv_by_hour.csv', title: 'Floyd CTV · by hour', desc: 'Impressions by day and hour, Central time.', head: ['date', 'hour_central', 'impressions'], rows: (a, b) => { const out = []; rng(a, b).forEach(i => S.ctv_hours[i].forEach((v, k) => out.push([D[i], k, v]))); return out; } },
-    { file: 'billboards.csv', title: 'Billboards · inventory', desc: 'Every board: location, facing, format, flight, weekly impressions, cost and contracted plays.', fixed: 1, head: ['board_id', 'location', 'city', 'county', 'facing', 'type', 'size', 'flight_start', 'flight_end', 'weekly_impressions_18plus', 'cost_per_4_weeks_usd', 'contracted_plays_per_day'], rows: () => S.boards.map(b => [b.id, b.name, b.city, b.county, b.facing, b.type, b.size, b.start, b.end, b.weekly, b.cost4w, b.contract_plays_day]) },
+    { file: 'billboards.csv', title: 'Billboards · inventory', desc: 'Every board: location, facing, format, flight, weekly impressions, cost and contracted plays.', fixed: 1, head: ['board_id', 'location', 'city', 'county', 'facing', 'type', 'size', 'flight_start', 'flight_end', 'weekly_impressions_18plus', 'cost_per_month_usd', 'contracted_plays_per_day'], rows: () => S.boards.map(b => [b.id, b.name, b.city, b.county, b.facing, b.type, b.size, b.start, b.end, b.weekly, b.cost_month, b.contract_plays_day]) },
     { file: 'billboard_daily.csv', title: 'Billboards · daily by board', desc: 'Impressions, digital plays and cost per board per day.', head: ['date', 'board_id', 'impressions', 'plays', 'cost_usd'], rows: (a, b) => { const out = []; rng(a, b).forEach(i => S.boards.forEach((bd, k) => { if (S.board_daily.imps[i][k]) out.push([D[i], bd.id, S.board_daily.imps[i][k], S.board_daily.plays[i][k], (S.board_daily.spend[i][k] / 100).toFixed(2)]); })); return out; } },
     { file: 'billboard_creative_daily.csv', title: 'Billboards · digital creative plays', desc: 'Plays by creative per day across the digital boards.', head: ['date', 'creative', 'plays'], rows: (a, b) => { const out = []; rng(a, b).forEach(i => S.dooh_creative.keys.forEach((k, j) => { if (S.dooh_creative.plays[i][j]) out.push([D[i], k, S.dooh_creative.plays[i][j]]); })); return out; } },
     { file: 'results_daily.csv', title: 'Results · daily', desc: 'Metro website sessions, brand searches, inbound calls, billboard-line calls. The full file includes the June baseline.', head: ['date', 'metro_site_sessions', 'branded_searches', 'inbound_calls', 'billboard_line_calls', 'paid_media_live'], rows: (a, b) => rng(a, b).map(i => [D[i], S.halo.sessions[i], S.halo.branded[i], S.halo.calls[i], S.halo.board_calls[i], i >= FS ? 1 : 0]) },

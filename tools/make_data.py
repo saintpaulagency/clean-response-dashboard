@@ -62,9 +62,9 @@ def jitter(sd):
     return 1 + rng.gauss(0, sd)
 
 # ---------------------------------------------------------------- CTV (Floyd)
-# Budget: $5,000 a month on average, so the Jul-Oct flight spends exactly $20,000 (SPA, Nov 19, 2026).
-CTV_FLIGHT_CENTS = 20000 * 100
-MONTH_BUDGET = {7: 149, 8: 154, 9: 159, 10: 164}        # $ per day before storm days; scaled to the flight total below
+# Budget: exactly $5,000 in every month of the flight (SPA, Nov 19, 2026). Daily spend still moves with storm days.
+CTV_MONTH_CENTS = 5000 * 100
+MONTH_BUDGET = {7: 149, 8: 154, 9: 159, 10: 164}        # daily shape before storm days; each month is scaled to CTV_MONTH_CENTS below
 MONTH_CPM = {7: 30.9, 8: 31.4, 9: 32.2, 10: 35.1}       # Oct: election-season demand
 ctv = {k: [0] * N for k in ('spend', 'imps', 'q25', 'q50', 'q75', 'completes', 'visits', 'leads')}
 raw_spend, day_cpm = [0.0] * N, [0.0] * N
@@ -72,7 +72,11 @@ for i, d in enumerate(DAYS):
     if LIVE[i]:
         raw_spend[i] = MONTH_BUDGET[d.month] * jitter(0.05) * (1.38 if TRIG[i] else 1.0)
         day_cpm[i] = MONTH_CPM[d.month] * jitter(0.025) * (1.04 if TRIG[i] else 1.0)
-day_cents = alloc(CTV_FLIGHT_CENTS, raw_spend)
+day_cents = [0] * N
+for m in sorted({d.month for i, d in enumerate(DAYS) if LIVE[i]}):
+    idx = [i for i, d in enumerate(DAYS) if LIVE[i] and d.month == m]
+    for i, c in zip(idx, alloc(CTV_MONTH_CENTS, [raw_spend[i] for i in idx])):
+        day_cents[i] = c
 for i, d in enumerate(DAYS):
     if not LIVE[i]:
         continue
@@ -151,17 +155,17 @@ for i, d in enumerate(DAYS):
 
 # ---------------------------------------------------------------- Billboards
 # weekly = Geopath-style 18+ impressions per week for our share of the face.
-# Budget: about $10,000 a month on average across all 8 boards ($40,000 for the Jul-Oct flight, SPA, Nov 19, 2026).
-# Digital boards run 1 spot in 16 (675 plays a day); static faces are smaller-audience locations. Costs per 1,000 as before.
+# Budget: exactly $10,000 in every month across all 8 boards, which run the whole flight (SPA, Nov 19, 2026).
+# cost_month = the board's price per calendar month. Digital boards run 1 spot in 16 (675 plays a day).
 BOARDS = [
-    dict(id='CR-D01', name='I-94 at Snelling Ave', city='St. Paul', county='Ramsey', facing='Eastbound', type='Digital bulletin', size="14' x 48'", lat=44.9560, lon=-93.1670, weekly=26000, cost4w=1300, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-D02', name='I-35E at Diffley Rd', city='Eagan', county='Dakota', facing='Northbound', type='Digital bulletin', size="10' x 30'", lat=44.8100, lon=-93.1530, weekly=19000, cost4w=1050, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-D03', name='I-494 at France Ave', city='Bloomington', county='Hennepin', facing='Westbound', type='Digital bulletin', size="14' x 48'", lat=44.8605, lon=-93.3290, weekly=30500, cost4w=1450, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-D04', name='I-694 at Hwy 10', city='Arden Hills', county='Ramsey', facing='Eastbound', type='Digital bulletin', size="14' x 48'", lat=45.0730, lon=-93.1640, weekly=22000, cost4w=1150, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-D05', name='I-94 at Hwy 101', city='Rogers', county='Hennepin', facing='Westbound', type='Digital bulletin', size="10' x 30'", lat=45.1880, lon=-93.5560, weekly=16500, cost4w=950, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-S01', name='I-35W at Hwy 13', city='Burnsville', county='Dakota', facing='Northbound', type='Static bulletin', size="14' x 48'", lat=44.7900, lon=-93.2770, weekly=53000, cost4w=1400, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-S02', name='Hwy 169 at I-494', city='Eden Prairie', county='Hennepin', facing='Southbound', type='Static bulletin', size="14' x 48'", lat=44.8590, lon=-93.4040, weekly=45500, cost4w=1260, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-S03', name='I-94 at Radio Dr', city='Woodbury', county='Washington', facing='Eastbound', type='Static bulletin', size="14' x 48'", lat=44.9450, lon=-92.9320, weekly=36500, cost4w=1100, start='2026-09-01', end='2026-10-31'),
+    dict(id='CR-D01', name='I-94 at Snelling Ave', city='St. Paul', county='Ramsey', facing='Eastbound', type='Digital bulletin', size="14' x 48'", lat=44.9560, lon=-93.1670, weekly=26000, cost_month=1350, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-D02', name='I-35E at Diffley Rd', city='Eagan', county='Dakota', facing='Northbound', type='Digital bulletin', size="10' x 30'", lat=44.8100, lon=-93.1530, weekly=19000, cost_month=1100, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-D03', name='I-494 at France Ave', city='Bloomington', county='Hennepin', facing='Westbound', type='Digital bulletin', size="14' x 48'", lat=44.8605, lon=-93.3290, weekly=30500, cost_month=1500, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-D04', name='I-694 at Hwy 10', city='Arden Hills', county='Ramsey', facing='Eastbound', type='Digital bulletin', size="14' x 48'", lat=45.0730, lon=-93.1640, weekly=22000, cost_month=1200, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-D05', name='I-94 at Hwy 101', city='Rogers', county='Hennepin', facing='Westbound', type='Digital bulletin', size="10' x 30'", lat=45.1880, lon=-93.5560, weekly=16500, cost_month=1000, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-S01', name='I-35W at Hwy 13', city='Burnsville', county='Dakota', facing='Northbound', type='Static bulletin', size="14' x 48'", lat=44.7900, lon=-93.2770, weekly=53000, cost_month=1450, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-S02', name='Hwy 169 at I-494', city='Eden Prairie', county='Hennepin', facing='Southbound', type='Static bulletin', size="14' x 48'", lat=44.8590, lon=-93.4040, weekly=45500, cost_month=1300, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-S03', name='I-94 at Radio Dr', city='Woodbury', county='Washington', facing='Eastbound', type='Static bulletin', size="14' x 48'", lat=44.9450, lon=-92.9320, weekly=36500, cost_month=1100, start='2026-07-01', end='2026-10-31'),
 ]
 PLAYS_DAY = 675  # 8-second spot that shows once every 128 seconds, 24 hours (1 of 16)
 OUTAGES = {('CR-D04', date(2026, 8, 19)): 0.75, ('CR-D02', date(2026, 10, 3)): 0.88}
@@ -177,7 +181,6 @@ for bi, b in enumerate(BOARDS):
     for i, d in enumerate(DAYS):
         if not (s <= d <= e):
             continue
-        b_spend[i][bi] = int(round(b['cost4w'] * 100 / 28))
         imp = b['weekly'] / 7 * DOW[d.weekday()] * SEASON[d.month] * jitter(0.03)
         if b['contract_plays_day']:
             f = OUTAGES.get((b['id'], d), 1.0)
@@ -186,6 +189,13 @@ for bi, b in enumerate(BOARDS):
             b_plays[i][bi] = plays
             imp *= plays / PLAYS_DAY
         b_imps[i][bi] = int(round(imp))
+
+# Each board's monthly price spread evenly over the days of the month, so every month adds up exactly.
+for bi, b in enumerate(BOARDS):
+    for m in sorted({d.month for i, d in enumerate(DAYS) if LIVE[i]}):
+        idx = [i for i, d in enumerate(DAYS) if LIVE[i] and d.month == m and b_imps[i][bi] > 0]
+        for i, c in zip(idx, alloc(b['cost_month'] * 100, [1] * len(idx))):
+            b_spend[i][bi] = c
 
 DOOH_CRE = ['Water Damage? There in 1 Hour', 'Fire & Smoke Restoration', 'Commercial & Multi-Family',
             'Storm Damage? Call Now (weather-triggered)']
@@ -208,9 +218,9 @@ for i, d in enumerate(DAYS):
     lift_s = 1 + ramp * (0.090 + 0.0065 * boards_live)   # smaller budget, smaller lift
     sess = 312 * wk * lift_s * (1.55 if storm else 1) * jitter(0.06)
     halo['sessions'][i] = int(round(sess))
-    br = 37 * wk * (1 + ramp * (0.14 + 0.011 * boards_live)) * (1.7 if storm else 1) * jitter(0.09)
+    br = 37 * wk * (1 + ramp * (0.115 + 0.009 * boards_live)) * (1.7 if storm else 1) * jitter(0.09)
     halo['branded'][i] = int(round(br))
-    halo['calls'][i] = poisson(21.5 * wk * (1 + ramp * 0.025) * (2.1 if storm else 1))
+    halo['calls'][i] = poisson(21.5 * wk * (1 + ramp * 0.005) * (2.1 if storm else 1))
     halo['board_calls'][i] = poisson((0.085 * boards_live) * (2.6 if storm else 1)) if LIVE[i] else 0
     # sessions by county: lift is stronger where more CTV + boards run
     cw = []
@@ -252,7 +262,6 @@ SAMPLE = {
         'storms': [s.isoformat() for s in STORMS],
         'events': [
             {'date': '2026-07-01', 'label': 'Campaign launch', 'kind': 'ours'},
-            {'date': '2026-09-01', 'label': 'Woodbury board added', 'kind': 'ours'},
             {'date': '2026-10-01', 'label': 'Election-season CTV demand', 'kind': 'market'},
         ],
         'outages': [{'board': k[0], 'date': k[1].isoformat(), 'delivered': v} for k, v in OUTAGES.items()],
@@ -302,9 +311,9 @@ for name, blk, label in (('ctv_by_app.csv', app_d, 'app'), ('ctv_by_device.csv',
 wcsv('ctv_by_hour.csv', ['date', 'hour_central', 'impressions'],
      [[DAYS[i].isoformat(), h, hours[i][h]] for i in live_idx for h in range(24)])
 wcsv('billboards.csv', ['board_id', 'location', 'city', 'county', 'facing', 'type', 'size', 'flight_start',
-                        'flight_end', 'weekly_impressions_18plus', 'cost_per_4_weeks_usd', 'contracted_plays_per_day'],
+                        'flight_end', 'weekly_impressions_18plus', 'cost_per_month_usd', 'contracted_plays_per_day'],
      [[b['id'], b['name'], b['city'], b['county'], b['facing'], b['type'], b['size'], b['start'], b['end'],
-       b['weekly'], b['cost4w'], b['contract_plays_day']] for b in BOARDS])
+       b['weekly'], b['cost_month'], b['contract_plays_day']] for b in BOARDS])
 wcsv('billboard_daily.csv', ['date', 'board_id', 'impressions', 'plays', 'cost_usd'],
      [[DAYS[i].isoformat(), b['id'], b_imps[i][bi], b_plays[i][bi], f"{b_spend[i][bi]/100:.2f}"]
       for i in live_idx for bi, b in enumerate(BOARDS) if b_imps[i][bi]])
