@@ -62,15 +62,21 @@ def jitter(sd):
     return 1 + rng.gauss(0, sd)
 
 # ---------------------------------------------------------------- CTV (Floyd)
-MONTH_BUDGET = {7: 355, 8: 368, 9: 380, 10: 392}        # $ per day
+# Budget: $5,000 a month on average, so the Jul-Oct flight spends exactly $20,000 (SPA, Nov 19, 2026).
+CTV_FLIGHT_CENTS = 20000 * 100
+MONTH_BUDGET = {7: 149, 8: 154, 9: 159, 10: 164}        # $ per day before storm days; scaled to the flight total below
 MONTH_CPM = {7: 30.9, 8: 31.4, 9: 32.2, 10: 35.1}       # Oct: election-season demand
 ctv = {k: [0] * N for k in ('spend', 'imps', 'q25', 'q50', 'q75', 'completes', 'visits', 'leads')}
+raw_spend, day_cpm = [0.0] * N, [0.0] * N
+for i, d in enumerate(DAYS):
+    if LIVE[i]:
+        raw_spend[i] = MONTH_BUDGET[d.month] * jitter(0.05) * (1.38 if TRIG[i] else 1.0)
+        day_cpm[i] = MONTH_CPM[d.month] * jitter(0.025) * (1.04 if TRIG[i] else 1.0)
+day_cents = alloc(CTV_FLIGHT_CENTS, raw_spend)
 for i, d in enumerate(DAYS):
     if not LIVE[i]:
         continue
-    spend = MONTH_BUDGET[d.month] * jitter(0.05) * (1.38 if TRIG[i] else 1.0)
-    cents = int(round(spend * 100))
-    cpm = MONTH_CPM[d.month] * jitter(0.025) * (1.04 if TRIG[i] else 1.0)
+    cents, cpm = day_cents[i], day_cpm[i]
     imps = int(round(cents / 100 / cpm * 1000))
     vcr = min(0.985, 0.962 + rng.gauss(0, 0.005))
     ctv['spend'][i] = cents
@@ -145,19 +151,21 @@ for i, d in enumerate(DAYS):
 
 # ---------------------------------------------------------------- Billboards
 # weekly = Geopath-style 18+ impressions per week for our share of the face.
+# Budget: about $10,000 a month on average across all 8 boards ($40,000 for the Jul-Oct flight, SPA, Nov 19, 2026).
+# Digital boards run 1 spot in 16 (675 plays a day); static faces are smaller-audience locations. Costs per 1,000 as before.
 BOARDS = [
-    dict(id='CR-D01', name='I-94 at Snelling Ave', city='St. Paul', county='Ramsey', facing='Eastbound', type='Digital bulletin', size="14' x 48'", lat=44.9560, lon=-93.1670, weekly=52000, cost4w=2600, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-D02', name='I-35E at Diffley Rd', city='Eagan', county='Dakota', facing='Northbound', type='Digital bulletin', size="10' x 30'", lat=44.8100, lon=-93.1530, weekly=38000, cost4w=2100, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-D03', name='I-494 at France Ave', city='Bloomington', county='Hennepin', facing='Westbound', type='Digital bulletin', size="14' x 48'", lat=44.8605, lon=-93.3290, weekly=61000, cost4w=2900, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-D04', name='I-694 at Hwy 10', city='Arden Hills', county='Ramsey', facing='Eastbound', type='Digital bulletin', size="14' x 48'", lat=45.0730, lon=-93.1640, weekly=44000, cost4w=2300, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-D05', name='I-94 at Hwy 101', city='Rogers', county='Hennepin', facing='Westbound', type='Digital bulletin', size="10' x 30'", lat=45.1880, lon=-93.5560, weekly=33000, cost4w=1900, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-S01', name='I-35W at Hwy 13', city='Burnsville', county='Dakota', facing='Northbound', type='Static bulletin', size="14' x 48'", lat=44.7900, lon=-93.2770, weekly=128000, cost4w=3400, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-S02', name='Hwy 169 at I-494', city='Eden Prairie', county='Hennepin', facing='Southbound', type='Static bulletin', size="14' x 48'", lat=44.8590, lon=-93.4040, weekly=112000, cost4w=3100, start='2026-07-01', end='2026-10-31'),
-    dict(id='CR-S03', name='I-94 at Radio Dr', city='Woodbury', county='Washington', facing='Eastbound', type='Static bulletin', size="14' x 48'", lat=44.9450, lon=-92.9320, weekly=96000, cost4w=2900, start='2026-09-01', end='2026-10-31'),
+    dict(id='CR-D01', name='I-94 at Snelling Ave', city='St. Paul', county='Ramsey', facing='Eastbound', type='Digital bulletin', size="14' x 48'", lat=44.9560, lon=-93.1670, weekly=26000, cost4w=1300, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-D02', name='I-35E at Diffley Rd', city='Eagan', county='Dakota', facing='Northbound', type='Digital bulletin', size="10' x 30'", lat=44.8100, lon=-93.1530, weekly=19000, cost4w=1050, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-D03', name='I-494 at France Ave', city='Bloomington', county='Hennepin', facing='Westbound', type='Digital bulletin', size="14' x 48'", lat=44.8605, lon=-93.3290, weekly=30500, cost4w=1450, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-D04', name='I-694 at Hwy 10', city='Arden Hills', county='Ramsey', facing='Eastbound', type='Digital bulletin', size="14' x 48'", lat=45.0730, lon=-93.1640, weekly=22000, cost4w=1150, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-D05', name='I-94 at Hwy 101', city='Rogers', county='Hennepin', facing='Westbound', type='Digital bulletin', size="10' x 30'", lat=45.1880, lon=-93.5560, weekly=16500, cost4w=950, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-S01', name='I-35W at Hwy 13', city='Burnsville', county='Dakota', facing='Northbound', type='Static bulletin', size="14' x 48'", lat=44.7900, lon=-93.2770, weekly=53000, cost4w=1400, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-S02', name='Hwy 169 at I-494', city='Eden Prairie', county='Hennepin', facing='Southbound', type='Static bulletin', size="14' x 48'", lat=44.8590, lon=-93.4040, weekly=45500, cost4w=1260, start='2026-07-01', end='2026-10-31'),
+    dict(id='CR-S03', name='I-94 at Radio Dr', city='Woodbury', county='Washington', facing='Eastbound', type='Static bulletin', size="14' x 48'", lat=44.9450, lon=-92.9320, weekly=36500, cost4w=1100, start='2026-09-01', end='2026-10-31'),
 ]
-PLAYS_DAY = 1350  # 8-second spot in a 64-second loop, 24 hours (1 of 8)
+PLAYS_DAY = 675  # 8-second spot that shows once every 128 seconds, 24 hours (1 of 16)
 OUTAGES = {('CR-D04', date(2026, 8, 19)): 0.75, ('CR-D02', date(2026, 10, 3)): 0.88}
-MAKEGOOD = {('CR-D04', date(2026, 8, 20)): 340, ('CR-D02', date(2026, 10, 4)): 165}
+MAKEGOOD = {('CR-D04', date(2026, 8, 20)): 170, ('CR-D02', date(2026, 10, 4)): 85}
 DOW = [1.06, 1.05, 1.05, 1.06, 1.08, 0.90, 0.80]
 SEASON = {6: 1.0, 7: 1.03, 8: 1.02, 9: 0.99, 10: 0.97}
 b_imps = [[0] * len(BOARDS) for _ in range(N)]
@@ -197,18 +205,18 @@ for i, d in enumerate(DAYS):
     boards_live = sum(1 for bi in range(len(BOARDS)) if b_imps[i][bi] > 0)
     wk = 0.93 if d.weekday() >= 5 else 1.02
     storm = TRIG[i]
-    lift_s = 1 + ramp * (0.135 + 0.010 * boards_live)
+    lift_s = 1 + ramp * (0.090 + 0.0065 * boards_live)   # smaller budget, smaller lift
     sess = 312 * wk * lift_s * (1.55 if storm else 1) * jitter(0.06)
     halo['sessions'][i] = int(round(sess))
-    br = 37 * wk * (1 + ramp * (0.21 + 0.017 * boards_live)) * (1.7 if storm else 1) * jitter(0.09)
+    br = 37 * wk * (1 + ramp * (0.14 + 0.011 * boards_live)) * (1.7 if storm else 1) * jitter(0.09)
     halo['branded'][i] = int(round(br))
-    halo['calls'][i] = poisson(21.5 * wk * (1 + ramp * 0.16) * (2.1 if storm else 1))
-    halo['board_calls'][i] = poisson((0.13 * boards_live) * (2.6 if storm else 1)) if LIVE[i] else 0
+    halo['calls'][i] = poisson(21.5 * wk * (1 + ramp * 0.025) * (2.1 if storm else 1))
+    halo['board_calls'][i] = poisson((0.085 * boards_live) * (2.6 if storm else 1)) if LIVE[i] else 0
     # sessions by county: lift is stronger where more CTV + boards run
     cw = []
     for name, hh, share, vis in COUNTIES:
         nb = sum(1 for bi, b in enumerate(BOARDS) if b['county'] == name and b_imps[i][bi] > 0)
-        cw.append(hh * (1 + ramp * (0.10 + 0.05 * nb + 0.35 * (vis - 1))))
+        cw.append(hh * (1 + ramp * (0.065 + 0.033 * nb + 0.23 * (vis - 1))))
     cty_sessions.append(alloc(halo['sessions'][i], cw))
 
 # Lift study (sample): exposed households vs a matched holdout that saw no CTV ad.
@@ -260,7 +268,7 @@ SAMPLE = {
     'dooh_creative': {'keys': DOOH_CRE, 'plays': dooh_plays},
     'halo': halo,
     'county_sessions': {'keys': [c[0] for c in COUNTIES], 'hh': [c[1] for c in COUNTIES], 'sessions': cty_sessions},
-    'lift_model': {'universe_hh': 520000, 'min_freq': 1.3, 'control_hh': 48000, 'control_visit_rate': 0.0034},
+    'lift_model': {'universe_hh': 520000, 'min_freq': 1.3, 'control_hh': 48000, 'control_visit_rate': 0.0026},
     'geo': geo,
 }
 with open(os.path.join(SITE, 'assets', 'js', 'data.js'), 'w') as f:

@@ -176,6 +176,15 @@
     host.innerHTML = head + `<div class="kpis${list.length === 3 ? ' cols-3' : ''}">${list.map(t => `
       <div class="kpi"><div class="kpi-label">${esc(t.label)}</div><div class="kpi-value">${t.value}</div>${t.delta || ''}${t.note ? `<div class="kpi-note">${t.note}</div>` : ''}</div>`).join('')}</div>`;
   }
+  // Average month, shown when the period is two or more whole calendar months (the full flight is four).
+  function perMonth(r) {
+    const a = D[r.i0], b = D[r.i1], next = D[r.i1 + 1];
+    if (a.slice(8) !== '01' || (next && next.slice(8) !== '01')) return '';
+    const n = (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7)) + 1;
+    const k = v => '$' + (v >= 1000 ? String(Math.round(v / 100) / 10) + 'K' : Math.round(v));
+    return n >= 2 ? `<br>${nw('Per month:')} ${nw('CTV ' + k(r.ctv.spend / n))} · ${nw('Billboards ' + k(r.ooh.spend / n))}` : '';
+  }
+  const nw = t => `<span style="white-space:nowrap">${esc(t)}</span>`;
   const vsPrev = (r, cur, prev, tone) => r.prev ? delta(cur, prev, tone, 'previous period') : '';
 
   // ------------------------------------------------------------------ narrative
@@ -228,7 +237,7 @@
   B.answer = (h, r) => { h.innerHTML = `<p class="answer">${answerText(r)}</p>`; };
 
   B.kpisOverview = (h, r, o) => kpiRow(h, r, [
-    { label: 'Total investment', value: F.usd(r.spend), delta: vsPrev(r, r.spend, r.prev && r.prev.spend, 'neutral'), note: `CTV ${F.usdC(r.ctv.spend)} · Billboards ${F.usdC(r.ooh.spend)}` },
+    { label: 'Total investment', value: F.usd(r.spend), delta: vsPrev(r, r.spend, r.prev && r.prev.spend, 'neutral'), note: `${nw('CTV ' + F.usdC(r.ctv.spend))} · ${nw('Billboards ' + F.usdC(r.ooh.spend))}` + perMonth(r) },
     { label: 'Total impressions', value: F.compact(r.imps), delta: vsPrev(r, r.imps, r.prev && r.prev.imps, 'up-good'), note: `Blended CPM ${F.usd2(r.cpm)}` },
     { label: 'Households reached by TV', value: F.compact(r.ctv.reach), delta: vsPrev(r, r.ctv.reach, r.prev && r.prev.ctv.reach, 'up-good'), note: `${F.dec(r.ctv.freq, 1)} views per household` },
     { label: 'Website sessions per day', value: F.int(r.halo.sessionsDay), delta: delta(r.halo.sessionsDay, r.halo.sessionsBase, 'up-good', 'June'), note: `June baseline: ${F.int(r.halo.sessionsBase)} per day` },
@@ -583,7 +592,7 @@
       <dt>Watched to the end</dt><dd>Share of CTV ads played to the last second.</dd>
       <dt>Households reached</dt><dd>Different homes that saw the CTV ad at least once. Views per household is impressions divided by homes reached.</dd>
       <dt>Site visits from viewers</dt><dd>Website visits within 30 days from homes that saw the CTV ad, matched by household.</dd>
-      <dt>Plays</dt><dd>Times the ad showed on a digital board: an 8-second spot in a 64-second loop, 1,350 plays a day per board.</dd>
+      <dt>Plays</dt><dd>Times the ad showed on a digital board: an 8-second spot that shows once every 128 seconds, 675 plays a day per board.</dd>
       <dt>Storm-alert day</dt><dd>A severe-weather alert for the metro and the day after. CTV spend rises and digital boards switch to the storm message.</dd>
       <dt>June baseline</dt><dd>Daily averages for June 1–30, 2026, before any CTV or billboards ran.</dd></dl>`;
   }
